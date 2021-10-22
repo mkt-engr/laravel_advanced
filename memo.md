@@ -92,3 +92,48 @@ php artisan route:list > route.txt # テキストに吐き出す
 - 認証系：auth.php
 
 ## バリデーションエラーメッセージを日本語化する
+
+２箇所
+
+メニューの一番下の「言語ファイル」から。
+validation.php:https://readouble.com/laravel/8.x/ja/validation-php.html
+
+- Laravel-Lang(GitHub のリポジトリ)：https://github.com/Laravel-Lang/lang
+  `locales/ja`の下に日本語化するためのファイルが有る。
+
+これを`umarche/resources/lang/`下にコピーする
+
+これでもまだ微妙に日本語化できていないところがある。（ユーザー登録画面でパスワードと確認パスワードをあえて違うものにするとわかる。）
+
+`resources/lang/ja/validation.php`に以下の配列を追加する。
+
+```php
+"attributes" => [
+  "name" => "名前",
+  "email" => "メールパスワード",
+  "password" => "パスワード"
+]
+```
+
+続いて"Whoops! Something went wrong."を日本語化するために`ja.json`を編集し`lang`直下に置く。
+
+```json
+ "Whoops! Something went wrong.": "エラーの内容を確認してください。",
+```
+
+## tailwind CSS
+
+TailWind 自体がおもすぎるので使わない CSS はビルドに含まないことができる。その設定が`tailwind.config.js`に書いてある。
+
+- tailwind.config.js
+
+purge で書かれてあるところ以外の CSS は削除する
+
+```js
+module.exports = {
+    purge: [
+        "./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php",
+        "./storage/framework/views/*.php",
+        "./resources/views/**/*.blade.php",
+    ],
+```

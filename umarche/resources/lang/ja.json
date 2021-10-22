@@ -683,7 +683,7 @@
     "When two factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.": "二段階認証を有効化した場合、ログイン時に安全かつランダムなトークンが与えられます。トークンはGoogle Authenticatorアプリから取得できます。",
     "Whoops": "おっと",
     "Whoops!": "おっと！",
-    "Whoops! Something went wrong.": "pregjofnい。era",
+    "Whoops! Something went wrong.": "エラーの内容を確認してください。",
     "With Trashed": "ゴミ箱付き",
     "Write": "書き込み",
     "Year To Date": "年から現在に至るまで",

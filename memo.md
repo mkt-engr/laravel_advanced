@@ -137,3 +137,300 @@ module.exports = {
         "./resources/views/**/*.blade.php",
     ],
 ```
+
+## Blade コンポーネント
+
+コントローラーが View を返したりモデルを扱ったりとコントローラーが肥大化しがちだった。
+
+Laravel6 系では
+`@yield,@extend,@section,include`などが使われていた。
+
+Laravel7 系以降では
+`<x-fefefe>`みたいなタグを使う。
+
+- login.blade.php
+
+```php
+<x-guest-layout>
+  <x-auth-card>
+//<x-＜ファイル名＞>となる。
+```
+
+のように使う。
+
+- `resources/views/components`の下に`auth-card.blade.php`がある。
+- `app/View/Components/`の下に`guest-layout.php`がある。
+
+- login.php が呼び出されたときの処理
+
+  1. `<x-guest-layout>`が最初にあるので GuestLayout.php (コンポーネントクラス)が呼び出される
+  2. render 関数が呼び出される
+
+  ```php
+   public function render()
+  {
+      return view('layouts.guest');
+  }
+  ```
+
+  3. layouts/guest.blade.php が呼び出される
+  4. guest.blade.php の`{{$slot}}`で中身(`<x-auth-card>`)が埋め込まれる。(`auth-card.blade.php`が埋め込まれる。)
+     - `<x-auth-card>`は`components/auth-card.blade.php`と対応している。
+
+### Blade コンポーネントクラスを作ってみる
+
+`routes/web.php`でルーティングする。
+
+- web.php
+
+```php
+//コントローラ追加
+use App\Http\Controllers\ComponentTestController;
+
+//ルーティング追加
+Route::get('/component-test1', [ComponentTestController::class, 'showComponent1']);
+Route::get('/component-test2', [ComponentTestController::class, 'showComponent2']);
+//ROute::get("＜URL＞",[受け取りたいコントローラー名::class,"＜コントローラーのメソッド＞"]);
+```
+
+- コントローラーのファイルを作成する。
+
+```sh
+php artisan make:controller ComponentTestController
+# app/Http/Controllers/ComponentTestController.phpが作成される。
+```
+
+- ComponentTestController.php
+
+```php
+class ComponentTestController extends Controller
+{
+    public function showComponent1()
+    {
+        return view("tests.component-test1");
+        //return view("＜フォルダ名.ファイル名＞")のように書く
+    }
+    public function showComponent2()
+    {
+        return view("tests.component-test2");
+    }
+}
+
+```
+
+### $slot に関して
+
+- コンポーネントパターン
+
+  1. コンポーネントを Blade ファイルに埋め込む。Card コンポーネントを別ファイルで作成し、Body コンポーネントに埋め込む的な
+  2. スロットを使う。大枠を作っておいて中身は使う側が決める。
+
+  - コンポーネントフォルダの作成場所：`resources/views/components`
+  - 使い方:`<x-コンポーネント名></x-コンポーネント名>`
+    - フォルダ分けしたい場合(`resources/views/components/tests`フォルダの場合)：`<x-tests.コンポーネント名></x-tests.コンポーネント名>`
+
+- Slot の作成
+  guest.blade.php の中に`$slot`がある。
+
+まず`resources/views/components/tests/app.blade.php`を作成する。(`guest.blade.php`を丸コピする)
+
+`app.blade.php`を`component-test1.blade.php`で使ってみる。
+
+- component-test1.php
+
+```php
+<x-tests.app>
+  コンポーネントテスト1
+</x-tests.app>
+```
+
+こう書くことで`tests/app.blade.php`にある`$slot`に`コンポーネントテスト1`という文章が差し込まれる(slot は差込口という意味)
+
+### 名前付き Slot
+
+app.blade.php は`{{ $slot }}`が 1 つしかないからこれでよかったけど Slot を複数作りたいときは困る。そんなときに名前付き Slot を使う。
+
+```php
+# Component側
+{{$header}}
+
+# Blade側
+<x-slot name="header">
+ここの文章が差し込まれる。
+</x-slot>
+```
+
+- layouts/app.blade.php(コンポーネント側)
+  ここに名前付きスロットがある。
+
+```php
+<header class="bg-white shadow">
+  <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+    {{ $header }}
+  </div>
+</header>
+```
+
+- dashboard.blade.php(Blade 側)
+
+slot の name="header"が app.blade.php の`{{$header}}`に埋め込まれる。
+
+```php
+<x-app-layout>
+  #######　ここから
+　<x-slot name="header">
+      <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+          {{ __('Dashboard') }}
+      </h2>
+  </x-slot>
+  ####### ここまでdashboard.blade.phpの{{$header}}に埋め込まれる
+
+  #######　ここから
+  <div class="py-12#######　ここから">
+          <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+              <div class="p-6 bg-white border-b border-gray-200">
+                  You are logged in!
+              </div>
+          </div>
+      </div>
+  </div>
+  ####### ここまでdashboard.blade.phpの{{$slot}}に埋め込まれる。
+</x-app-layout>
+```
+
+実際に作ってみる。
+
+- `tests/app.blade.php`
+
+```php
+<body>
+    <header>
+        {{ $header }}
+    </header>
+    <div class="font-sans text-gray-900 antialiased">
+        {{ $slot }}
+    </div>
+</body>
+```
+
+- component-test1.blade.php
+
+```php
+<x-tests.app>
+    <x-slot name="header">ヘッダー1</x-slot>
+    コンポーネントテスト1
+</x-tests.app>
+
+```
+
+### View ファイルに値を渡す方法その１（props）
+
+|                         | Blade ファイル(渡す側)                      | Blade コンポーネント(受け取る側)                        |
+| ----------------------- | ------------------------------------------- | ------------------------------------------------------- |
+| $slot                   | `<x-app>ここに文字</x-app>`                 | `{{$slot}}`                                             |
+| 名前付き slot           | `<x-slot name="header">ここに文字</x-slot>` | `{{$header}}`                                           |
+| 属性(props)             | `<x-card message="メッセージ"></x-card>`    | `{{$message}}`                                          |
+| 初期値`@props`連想配列  | 設定しない場合初期値が表示される            | `@props(['message'=>'初期値です。'])`                   |
+| クラスの設定 属性バック | `<div {{$attribute}}>`                      | `<div {{$message->merge(['class'=>'text-sm'])}}></div>` |
+
+**実際に使う**
+
+- `component/tests/card.blade.php`（受け取る側）
+
+```php
+<div class="border-2 shadowmd w-1/4 p-2">
+    <div>{{ $title }}</div>
+    <div>画像</div>
+    <div>{{ $content }}</div>
+</div>
+```
+
+- `tests/component-test1.blade.php`
+
+値を渡すときは`$`をつけない
+
+```php
+<x-tests.app>
+    <x-tests.card title="タイトル" content="本文" />
+</x-tests.app>
+```
+
+### View ファイルに値を渡す方法その２（変数）
+
+コントローラーなどから変数を渡す。
+
+- コントローラー側（渡す側）
+  ```php
+  $message = 'メッセージ'
+  return view("Viewファイル",compact('message'));
+  ```
+
+* Blade 側(受け取る側)
+  ```php
+  <x-card :message='$message'>
+  ```
+
+**実際に書く**
+
+- ComponentTestController.php（値渡す側）
+
+```php
+public function showComponent1()
+{
+    $message = 'メッセージ';
+    return view("tests.component-test1", compact("message"));
+}
+```
+
+- component-test1.blade.php（コントローラーから受け取る）
+
+```php
+<x-tests.app>
+    // 左辺：”:”をつけて属性ではなく変数であることを明記する
+    // 右辺："$"をつけてコントローラーから受け取ったことを明記する。
+    <x-tests.card title="タイトル" content="本文" :message="$message" />
+</x-tests.app>
+```
+
+- card.blade.php（Blade コンポーネントから受け取る）
+
+```php
+<div class="border-2 shadow-md w-1/4 p-2">
+    <div>{{ $title }}</div>
+    <div>画像</div>
+    <div>{{ $content }}</div>
+    <div>{{ $message }}</div>//追加
+</div>
+```
+
+#### props に初期値を設定する方法
+
+card.blade.php では 3 つの変数(`title`,`content`,`message`)を定義している。値を渡す側で
+
+```php
+<x-tests.card title="タイトル" />
+```
+
+としていると`content`を定義してないよってエラーが出る。
+
+エラーを回避するために初期値を設定したい。
+
+受け取る側に初期値を書く。
+
+- card.blade.php
+
+`@props`を用いる場合は、表示されているすべての変数に関して初期値を書く必要がある。
+
+```php
+@props([
+    'title' => 'タイトル初期値',
+    'message' => '本文初期値です。',
+    'content' => '本文初期値です。',
+])
+<div class="border-2 shadow-md w-1/4 p-2">
+    <div>{{ $title }}</div>
+    <div>{{ $content }}</div>
+    <div>{{ $message }}</div>
+</div>
+
+```

@@ -432,5 +432,221 @@ card.blade.php では 3 つの変数(`title`,`content`,`message`)を定義して
     <div>{{ $content }}</div>
     <div>{{ $message }}</div>
 </div>
+```
 
+### クラスの設定、属性バッグ
+
+CSS のクラスを渡す際に用いられる機能
+
+単に以下のようにするだけだと class 名が反映されない。
+
+```php
+<x-tests.card title="CSSを変更したい" class="bg-red-300"/>
+```
+
+そこで`$attributes`を使う。
+
+- component-test1.blade.php(値を渡す側)
+
+```php
+<x-tests.app>
+    <x-tests.card title="CSSを変更したい" class="bg-red-300" />
+</x-tests.app>
+```
+
+- card.blade.php（値を受け取る側）
+
+```php
+<div {{ $attributes }} class="border-2 shadow-md w-1/4 p-2">
+    <div>{{ $title }}</div>
+</div>
+```
+
+**しかしこうすると受け取る側のクラス`border-2`などがすべて値を渡す側の`bg-red-300`でウワが枯れてしまう。**
+
+受け取る側と渡す側のクラス名を両方使いたい場合は以下のように書く。(受け取り側のみ変更)
+
+- card.blade.php
+
+```php
+<div {{ $attributes->merge(['class' => 'border-2 shadow-md w-1/4 p-2']) }}>
+//{{ $attributes->merge(['＜属性(だいたいclassになりそう＞)' => '＜もともとの属性値＞']) }}
+</div>
+```
+
+## クラスベースのコンポーネント
+
+以下のコマンドで
+
+- `View/Component`
+- `resources/views/components`
+  にファイルが作られる。
+
+```sh
+php artisan make:component FEFEFE
+```
+
+なおオプションで`--inline`をつけると`View/Component`似のみファイルが作られる。
+
+`App/View/Components`内のクラスを指定する。
+クラス名：TestClassBase(パスカルケース)
+Blade 内：x-test-class-base(ケバブケース)
+
+コンポーネントクラス内で
+
+```php
+public function render(){
+  return view("bladeコンポーネント内");
+}
+```
+
+- component-test2.blade.php(クラスベースコンポーネントの呼び出し側)
+
+```php
+<x-tests.app>
+    <x-test-class-base />
+    // View/Components/TestClassBase.phpのケバブケース
+</x-tests.app>
+```
+
+- TestClassBase.php(Blade ファイルを呼び出す)
+
+```php
+public function render()
+{
+    return view('components.tests.test-class-base-component');
+    // components/testsの中のtest-class-base-component.blade.phpを呼び出す。
+}
+```
+
+## クラスベースコンポーネントで属性(props)と`@props`の初期値を設定する
+
+### 属性
+
+- test-class-base-component.blade.php(最終的な受け取り口)
+
+```php
+<div>
+    クラスベースのコンポーネントです。
+    <div class="">{{ $classBaseMessage }}</div>
+</div>
+```
+
+- component-test2.blade.php(出発地点となる Blade ファイル)
+
+```php
+<x-tests.app>
+    <x-slot name="header">ヘッダー2</x-slot>
+    コンポーネントテスト2
+    <x-test-class-base classBaseMessage="メッセージです" />
+</x-tests.app>
+```
+
+このままだと`test-class-base-component.blade.php`で`classBaseMessage`が Undefined のエラーが出る。
+
+`<x-test-class-base classBaseMessage="メッセージです" />`のクラスコンポーネントである`TestClassBase.blade.php`で`classBaseMessage`を定義する。
+
+`classBaseMessage`は以下のようにコンストラクタの中に書く。
+
+- TestClassBase.blade.php(`component-test2.blade.php`->**`TestClassBase.blade.php`**->`test-class-base-component.blade.php`)
+
+return するときに compact 関数の中にメンバ変数を入れる必要はない。
+
+```php
+class TestClassBase extends Component
+{
+    //メンバ変数として$classBaseMessageを定義する
+    public $classBaseMessage;
+    /**
+     * Create a new component instance.
+     *
+     * @return void
+     */
+    public function __construct($classBaseMessage)
+    {
+      //コンストラクタ内で初期化
+        $this->classBaseMessage = $classBaseMessage;
+    }
+```
+
+test-class-base-component.blade.php にもう 1 つ変数($defaultMessage)を追加してみる。
+
+- test-class-base-component.blade.php
+
+```php
+<div>
+    クラスベースのコンポーネントです。
+    <div class="">{{ $classBaseMessage }}</div>
+    <div class="">{{ $defaultMessage }}</div>
+</div>
+```
+
+- component-test2.blade.php
+  このままだと 1 つ目`x-test-class-base`の`defaultMessage`属性がないほうがエラーになる。
+
+```php
+<x-tests.app>
+    <x-test-class-base classBaseMessage="メッセージです" />
+    <x-test-class-base classBaseMessage="メッセージです" defaultMessage="初期値から変更している。" />
+</x-tests.app>
+```
+
+このエラーを回避するために`TestClassBase.php`で初期値を設定する。
+
+- TestClassBase.php
+
+コンストラクタの引数の中で初期値を定義する。
+
+```php
+class TestClassBase extends Component
+{
+
+    public $classBaseMessage;
+    public $defaultMessage;
+    /**
+     * Create a new component instance.
+     *
+     * @return void
+     */
+    public function __construct($classBaseMessage, $defaultMessage = "初期値です。")
+    {
+        $this->classBaseMessage = $classBaseMessage;
+        $this->defaultMessage = $defaultMessage;
+    }s
+```
+
+### デフォルトで作られている Blade ファイルを除く
+
+- resources/views/components/auth-validation-errors.blade.php
+
+`__`のようにアンスコ 2 つで多言語ファイルに設定している情報から日本語に変換する
+
+```php
+~~~
+{{ __('Whoops! Something went wrong.') }}
+~~~
+```
+
+## Alpine.js について(あるぱいん)
+
+`dropdown.blade.php`の L24 あたりの`x-data`が Alpine.js の部分
+
+tailwind の JavaScript 版と公式では言ってる。
+
+```php
+<div x-show="isOpen()"></div>
+```
+
+```php
+<div @click="open = ! open"></div>
+<div x-on:click="open = ! open"></div>
+//この2つは同じ。Vueやん。
+```
+
+`open`という変数が`true`なら div タグを表示する。Vue の`v-show`と同じやん
+
+```php
+<div x-show="open">
+~~~
+</div>
 ```

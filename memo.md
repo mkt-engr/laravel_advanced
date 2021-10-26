@@ -650,3 +650,88 @@ tailwind の JavaScript 版と公式では言ってる。
 ~~~
 </div>
 ```
+
+## セクション 3 ライフサイクル
+
+- 全体の流れ
+  WEB サーバが`public/index.php`にリダイレクト
+
+1. autoload 読み込み
+2. Application インスタンス作成(サービスコンテナ)
+3. HttpKernel インスタンス作成
+4. Request インスタンス作成
+5. HttpKernel がリクエストを処理して Response 取得
+6. レスポンス送信
+7. terminate()で後片付け
+
+---
+
+1. autoload
+   require なしで別ファイルのクラスを利用できる(use 文)
+
+- index.php
+
+```php
+require __DIR__.'/../vendor/autoload.php';
+```
+
+2. Application(サービスコンテナ)
+   Bootstrap/app.php を読み込み
+   app.php
+
+```php
+$app = new Illuminate\Foundation\Application
+```
+
+### サービスコンテナ
+
+Controller 作る
+
+```sh
+php artisan make:controller LifeCycleTestController
+```
+
+- LifeCycleTestController.php
+  `app()`がサービスコンテナのことっぽひ
+
+```php
+class LifeCycleTestController extends Controller
+{
+    public function showServiceContainerTest()
+    {
+        dd(app());
+    }
+}
+```
+
+`dd`してブラウザに表示されている`#binding`がサービスが 71 個登録されている
+リダイレクト、認証、クッキーなど
+
+- サービスコンテナにサービスを登録する
+
+* LifeCycleTestController.php
+
+```php
+public function showServiceContainerTest()
+{
+    app()->bind('lifeCycleTest', function () {
+        return "ライフサイクルテスト";
+    });
+    //app()->bind("＜サービスの名前＞","＜サービスの関数＞")
+    dd(app());
+}
+```
+
+- サービスコンテナからサービスを取り出す
+
+* LifeCycleTestController.php
+
+```php
+app()->bind('lifeCycleTest', function () {
+    return "ライフサイクルテスト";
+
+$test = app()->make('lifeCycleTest');
+//app()->make(＜登録したサービス名＞)
+
+dd($test)//output:"ライフサイクルテスト"
+```

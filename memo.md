@@ -735,3 +735,45 @@ $test = app()->make('lifeCycleTest');
 
 dd($test)//output:"ライフサイクルテスト"
 ```
+
+## サービスコンテナと依存関係の解決
+
+以下のサンプルソースで用いる Sample クラスと Message クラス
+
+```php
+class Sample{
+    public $message;
+    //DI:引数にクラスを入れると自動的にインスタンス化する
+    public function __construct(Message $message){
+        $this->message = $message;
+    }
+    public function run(){
+        $this->message->send();
+    }
+}
+class Message{
+    public function send(){
+        echo ("メッセージ表示");
+    }
+}
+```
+
+通常の new する場合とサービスコンテナを使う場合の 2 種類を見る。結果としてはどちらも`メッセージ表示`と出力される。
+
+1. 通常の場合(new する場合)
+   依存した 2 つのクラスがある場合はそれぞれをインスタンス化後に実行
+
+```php
+$message = new Message();
+$sample = new Sample($message);
+$sample-> run();
+```
+
+2. サービスコンテナを使ったパターン
+   関連するクラスも同時にインスタンス化してくれて new する必要がない。
+
+```php
+app()->bind("sample",Sample::class);
+$sample = app()->make("sample");
+$sample->run();
+```

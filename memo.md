@@ -778,4 +778,31 @@ $sample = app()->make("sample");
 $sample->run();
 ```
 
-ライフライクル(公式ドキュメント)：https://readouble.com/laravel/8.x/ja/lifecycle.html
+ライフサイクル(公式ドキュメント)：https://readouble.com/laravel/8.x/ja/lifecycle.html
+
+### サービスプロバイダ
+
+- ServiceProvider
+  - register():登録処理
+  - boot() ：登録後に実行したい処理
+
+配置場所：`illuminate/Foundation/Application`
+
+**EncryptionServiceProvider を使ってみる。**
+
+- web.php
+
+```php
+Route::get('/servicecprovidertest', [LifeCycleTestController::class, 'showServiceProviderTest']);
+```
+
+- LifeCycleTestController.php
+
+```php
+public function showServiceProviderTest()
+{
+    $encrypt = app()->make("encrypter");
+    $password = $encrypt->encrypt("password");
+    dd($password, $encrypt->decrypt($password));
+}
+```

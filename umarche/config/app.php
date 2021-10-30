@@ -175,6 +175,8 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+        //自分で追加したプロバイダ
+        App\Providers\SampleServiceProvider::class,
     ],
 
     /*

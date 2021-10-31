@@ -806,3 +806,78 @@ public function showServiceProviderTest()
     dd($password, $encrypt->decrypt($password));
 }
 ```
+
+- プロバイダ作成のコマンド
+
+```sh
+php artisan make:provider SampleServiceProvider
+```
+
+`app/Providers/SampleServiceProvider.php`が作成される
+
+SampleServiceProvider.php の register メソッドでプロバイダを登録する。
+
+- SampleServiceProvider.php
+
+```php
+public function register()
+{
+    app()->bind('serviceProviderTest', function () {
+        return "サービスプロバイダのテスト";
+    });
+}
+```
+
+作成したサービスクラスを`config/app.php`に記載する(サービスコンテナに登録する)
+
+- app.php
+
+```php
+'providers' => [
+〜〜〜〜たくさんのプロバイダたち〜〜〜〜
+//自分で追加したプロバイダ
+  App\Providers\SampleServiceProvider::class,
+],
+```
+
+コントローラの中で登録した SampleServiceProvider を使う。
+
+- LifeCycleTestController.php
+
+```php
+public function showServiceProviderTest()
+{
+    $sample = app()->make("serviceProviderTest")
+    //http://127.0.0.1:8000/servicecprovidertestにアクセスすると
+    dd($sample); //「サービスプロバイダのテスト」と表示される
+
+}
+```
+
+# セクション 4 マルチログイン対応
+
+マルチログイン手順
+
+1. モデル・マイグレーション作成
+
+```sh
+php artisan make:model Owner -m
+php artisan make:model Admin -m
+```
+
+`-m`でマイグレーションファイル作成
+
+`App/Models`の下にファイルが作成される。
+
+`User.php`のものをコピ-して`Owner.php`に貼り付ける。
+
+```php
+use Illuminate\Foundation\Auth\User as Authenticatable;
+```
+
+2. ルート設定
+3. ルートサービスプロバイダ設定
+4. ガード設定
+5. ミドルウェア設定
+6. リクエストクラス設定
+7. コントローラー＆ブレード作成
